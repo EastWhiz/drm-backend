@@ -418,20 +418,39 @@ const DoctorReportController = {
       });
 
     // Process original API responses to only include necessary data
-      const minimalOriginalResponses = rawApiResponses.map(response => ({
-        results: response.results.map(review => ({
-          doctor_full_name: review.doctor_full_name,
-          comment: review.comment,
-          created: review.created,
-          average: review.average,
-          staff: review.staff,
-          helpfulness: review.helpfulness,
-          knowledge: review.knowledge
-        })),
-        current_page: response.current_page,
-        total_pages: response.total_pages,
-        count: response.count
-      }));
+      const minimalOriginalResponses = rawApiResponses.map(response => {
+        // Handle RateMDs shape (results)
+        if (Array.isArray(response.results)) {
+          return {
+            results: response.results.map(review => ({
+              doctor_full_name: review.doctor_full_name,
+              comment: review.comment,
+              created: review.created,
+              average: review.average,
+              staff: review.staff,
+              helpfulness: review.helpfulness,
+              knowledge: review.knowledge
+            })),
+            current_page: response.current_page,
+            total_pages: response.total_pages,
+            count: response.count
+          };
+        }
+        // Handle RealSelf shape (reviews)
+        if (Array.isArray(response.reviews)) {
+          return {
+            reviews: response.reviews.map(review => ({
+              author: review.user?.name || 'Anonymous',
+              comment: review.body,
+              reviewDate: review.reviewDate,
+              rating: review.rating
+            })),
+            summary: response.summary ?? null
+          };
+        }
+        // Fallback: return as-is to avoid breaking
+        return response;
+      });
 
       return res.json({
         success: true,
